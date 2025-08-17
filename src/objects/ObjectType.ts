@@ -13,4 +13,6 @@ export enum ObjectType {
   Scalar = 'scalar',
   RotatedRect = 'rotated_rect',
   TermCriteria = 'term_criteria',
+  KeyPoint = 'keypoint',
+  KeyPointVector = 'keypoint_vector',
 }

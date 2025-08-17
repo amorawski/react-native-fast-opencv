@@ -128,6 +128,20 @@ std::shared_ptr<cv::TermCriteria> FOCV_FunctionArguments::asTermCriteriaPtr(int 
     return FOCV_Storage::get<cv::TermCriteria>(FOCV_JsiObject::id_from_wrap(*this->runtime, arguments[index]));
 }
 
+std::shared_ptr<cv::KeyPoint> FOCV_FunctionArguments::asKeyPointPtr(int index) {
+    if (!this->isKeyPoint(index)) {
+        throw std::runtime_error("Fast OpenCV Error: Argument (" + std::to_string(index) + ") is not a KeyPoint!");
+    }
+    return FOCV_Storage::get<cv::KeyPoint>(FOCV_JsiObject::id_from_wrap(*this->runtime, arguments[index]));
+}
+
+std::shared_ptr<std::vector<cv::KeyPoint>> FOCV_FunctionArguments::asKeyPointVectorPtr(int index) {
+    if (!this->isKeyPointVector(index)) {
+        throw std::runtime_error("Fast OpenCV Error: Argument (" + std::to_string(index) + ") is not a KeyPointVector!");
+    }
+    return FOCV_Storage::get<std::vector<cv::KeyPoint>>(FOCV_JsiObject::id_from_wrap(*this->runtime, arguments[index]));
+}
+
 bool FOCV_FunctionArguments::isNumber(int index) {
     this->assertIndex(index);
     return this->arguments[index].isNumber();
@@ -198,6 +212,14 @@ bool FOCV_FunctionArguments::isRotatedRect(int index) {
 
 bool FOCV_FunctionArguments::isTermCriteria(int index) {
     return this->isObject(index) && FOCV_JsiObject::type_from_wrap(*this->runtime, arguments[index]) == "term_criteria";
+}
+
+bool FOCV_FunctionArguments::isKeyPoint(int index) {
+    return this->isObject(index) && FOCV_JsiObject::type_from_wrap(*this->runtime, arguments[index]) == "keypoint";
+}
+
+bool FOCV_FunctionArguments::isKeyPointVector(int index) {
+    return this->isObject(index) && FOCV_JsiObject::type_from_wrap(*this->runtime, arguments[index]) == "keypoint_vector";
 }
 
 

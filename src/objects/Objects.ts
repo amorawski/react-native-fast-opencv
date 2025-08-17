@@ -19,8 +19,10 @@ export type Vec3b = { id: string; type: ObjectType.Vec3b };
 export type Scalar = { id: string; type: ObjectType.Scalar };
 export type RotatedRect = { id: string; type: ObjectType.RotatedRect };
 export type TermCriteria = { id: string; type: ObjectType.TermCriteria };
+export type KeyPoint = { id: string; type: ObjectType.KeyPoint };
+export type KeyPointVector = { id: string; type: ObjectType.KeyPointVector };
 
-export type Vector = MatVector | PointVector | RectVector;
+export type Vector = MatVector | PointVector | RectVector | KeyPointVector;
 export type Array = Mat | Vec3b;
 
 export type Objects = {
@@ -67,6 +69,19 @@ export type Objects = {
     maxCount: number,
     epsilon: number
   ): TermCriteria;
+  createObject(
+    type: ObjectType.KeyPoint,
+    pt: {
+      x: number;
+      y: number;
+    },
+    size: number,
+    angle: number,
+    response: number,
+    octave: number,
+    class_id: number
+  ): KeyPoint;
+  createObject(type: ObjectType.KeyPointVector): KeyPointVector;
 
   toJSValue(
     mat: Mat,
@@ -137,6 +152,30 @@ export type Objects = {
     maxCount: number;
     epsilon: number;
   };
+  toJSValue(keyPoint: KeyPoint): {
+    pt: {
+      x: number;
+      y: number;
+    };
+    size: number;
+    angle: number;
+    response: number;
+    octave: number;
+    class_id: number;
+  };
+  toJSValue(keyPointVector: KeyPointVector): {
+    array: {
+      pt: {
+        x: number;
+        y: number;
+      };
+      size: number;
+      angle: number;
+      response: number;
+      octave: number;
+      class_id: number;
+    }[];
+  };
 
   copyObjectFromVector(vector: MatVector, itemIndex: number): Mat;
   copyObjectFromVector(vector: PointVector, itemIndex: number): Point;
@@ -145,9 +184,11 @@ export type Objects = {
     itemIndex: number
   ): PointVector;
   copyObjectFromVector(vector: RectVector, itemIndex: number): Rect;
+  copyObjectFromVector(vector: KeyPointVector, itemIndex: number): KeyPoint;
 
   addObjectToVector(vector: MatVector, object: Mat): void;
   addObjectToVector(vector: PointVector, object: Point): void;
   addObjectToVector(vector: RectVector, object: Rect): void;
   addObjectToVector(vector: PointVectorOfVectors, object: PointVector): void;
+  addObjectToVector(vector: KeyPointVector, object: KeyPoint): void;
 };
