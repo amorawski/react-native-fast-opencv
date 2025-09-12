@@ -1,4 +1,4 @@
-import type { Mat } from '../objects/Objects';
+import type { KeyPointVector, Mat } from '../objects/Objects';
 
 type BufferType = {
   uint8: Uint8Array;
@@ -69,4 +69,19 @@ export type UtilsFunctions = {
   };
 
   inpaint(src: Mat, mask: Mat, dst: Mat, radius: number, flag: unknown): void;
+
+  siftDetect(
+    orig: Mat,
+    mask: Mat
+  ): { keypoints: KeyPointVector; descriptors: Mat };
+
+  siftDrawKeypoints(orig: Mat, keypoints: KeyPointVector): Mat;
+
+  siftCompare(
+    test: Mat,
+    descriptors: Mat,
+    keypoints: KeyPointVector,
+    orig: Mat,
+    mask: Mat
+  ): Mat;
 };

@@ -184,7 +184,10 @@ export type Objects = {
     itemIndex: number
   ): PointVector;
   copyObjectFromVector(vector: RectVector, itemIndex: number): Rect;
-  copyObjectFromVector(vector: KeyPointVector, itemIndex: number): KeyPoint;
+  copyObjectFromVector(
+    vector: KeyPointVector,
+    itemIndex: number
+  ): KeyPointVector;
 
   addObjectToVector(vector: MatVector, object: Mat): void;
   addObjectToVector(vector: PointVector, object: Point): void;

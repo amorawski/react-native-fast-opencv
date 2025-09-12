@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <string>
+#include <android/log.h>
 
 using namespace std;
 using namespace cv;
@@ -71,7 +72,7 @@ std::string ImageConverter::base64_encode(uchar const* bytes_to_encode, unsigned
         {
             ret += base64_chars[char_array_4[j]];
         }
-        
+
         while ((i++ < 3))
         {
             ret += '=';
@@ -120,7 +121,7 @@ std::string ImageConverter::base64_decode(std::string const& encoded_string)
         {
             char_array_4[j] = 0;
         }
-        
+
         for (j = 0; j < 4; j++)
         {
             char_array_4[j] = base64_chars.find(char_array_4[j]);
@@ -144,7 +145,7 @@ string ImageConverter::mat2str(const Mat& m, std::string &format)
     vector<uchar> buf;
     cv::imencode("." + format, m, buf);
     auto result = reinterpret_cast<const unsigned char*>(buf.data());
-  
+
     return base64_encode(result, buf.size());
 
 }
@@ -156,6 +157,7 @@ Mat ImageConverter::str2mat(const string& s)
     vector<uchar> data(decoded_string.begin(), decoded_string.end());
 
     cv::Mat img = cv::imdecode(data, IMREAD_UNCHANGED);
-  
+          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "FUNKC %i, %i", img.cols, img.rows);
+
     return img;
 }

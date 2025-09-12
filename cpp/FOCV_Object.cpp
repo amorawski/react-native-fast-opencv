@@ -171,13 +171,15 @@ jsi::Object FOCV_Object::create(jsi::Runtime& runtime, const jsi::Value* argumen
             id = FOCV_Storage::save(object);
         } break;
         case hashString("keypoint", 8): {
-            auto x = arguments[1].asNumber();
-            auto y = arguments[2].asNumber();
-            auto size = arguments[3].asNumber();
-            auto angle = arguments[4].asNumber();
-            auto response = arguments[5].asNumber();
-            auto octave = static_cast<int>(arguments[6].asNumber());
-            auto class_id = static_cast<int>(arguments[7].asNumber());
+            auto pt = arguments[1].asObject(runtime);
+            auto x = pt.getProperty(runtime, "x").asNumber();
+            auto y = pt.getProperty(runtime, "y").asNumber();
+
+            auto size = arguments[2].asNumber();
+            auto angle = arguments[3].asNumber();
+            auto response = arguments[4].asNumber();
+            auto octave = static_cast<int>(arguments[5].asNumber());
+            auto class_id = static_cast<int>(arguments[6].asNumber());
 
             cv::KeyPoint object(cv::Point2f(x, y), size, angle, response, octave, class_id);
             id = FOCV_Storage::save(object);

@@ -59,7 +59,9 @@ public:
     std::shared_ptr<cv::Scalar> asScalarPtr(int index);
     std::shared_ptr<cv::RotatedRect> asRotatedRectPtr(int index);
     std::shared_ptr<cv::TermCriteria> asTermCriteriaPtr(int index);
-    
+    std::shared_ptr<cv::KeyPoint> asKeyPointPtr(int index);
+    std::shared_ptr<std::vector<cv::KeyPoint>> asKeyPointVectorPtr(int index);
+
     bool isNumber(int index);
     bool isBool(int index);
     bool isString(int index);
@@ -77,6 +79,8 @@ public:
     bool isScalar(int index);
     bool isRotatedRect(int index);
     bool isTermCriteria(int index);
+    bool isKeyPoint(int index);
+    bool isKeyPointVector(int index);
 };
 
 #endif /* FOCV_FunctionArguments_hpp */
