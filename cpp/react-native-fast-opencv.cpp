@@ -1,5 +1,6 @@
 #include <iostream>
 #include <android/log.h>
+#include <cmath>
 
 #include "react-native-fast-opencv.h"
 #include "jsi/Promise.h"
@@ -7,6 +8,7 @@
 #include <FOCV_Ids.hpp>
 #include <FOCV_Storage.hpp>
 #include <FOCV_Function.hpp>
+#include <opencv2/core/cvstd.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -157,7 +159,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
               size_t count) -> jsi::Object {
 
           auto base64 = arguments[0].asString(runtime).utf8(runtime);
-          __android_log_print(ANDROID_LOG_VERBOSE, "ImageComparison", "%i", base64.length());
 
           auto mat = ImageConverter::str2mat(base64);
           auto id = FOCV_Storage::save(mat);
@@ -184,9 +185,7 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
                 auto size = mat.cols * mat.rows * mat.channels();
 
                 if(type == "uint8") {
-          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "size: %d, %d, %d, %d", size, mat.cols, mat.rows, mat.channels());
                   auto arr = TypedArray<TypedArrayKind::Uint8Array>(runtime, size);
-          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "data size: %d", mat.size);
                   arr.updateUnsafe(runtime, (uint8_t*)mat.data, size * sizeof(uint8_t));
                   value.setProperty(runtime, "buffer", arr);
                 } else if(type == "uint16") {
@@ -298,16 +297,16 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           auto maskImageId = FOCV_JsiObject::id_from_wrap(runtime, arguments[1]);
           auto maskImageRaw = *FOCV_Storage::get<cv::Mat>(maskImageId);
 
-          cv::Mat origImageResized = origImageRaw;
-          //cv::resize(origImageRaw, origImageResized, cv::Size(1024, 768));
+          cv::Mat origImageResized;// = origImageRaw;
+          cv::resize(origImageRaw, origImageResized, cv::Size(800, 600));
 
           cv::Mat origImageBW;
           cv::cvtColor(origImageResized, origImageBW, cv::COLOR_BGRA2GRAY);
 
           cv::Mat origImage = origImageBW;
 
-          cv::Mat maskImageResized = maskImageRaw;
-          //cv::resize(maskImageRaw, maskImageResized, cv::Size(1024, 768));
+          cv::Mat maskImageResized;// = maskImageRaw;
+          cv::resize(maskImageRaw, maskImageResized, cv::Size(800, 600));
 
           cv::Mat maskImageBW;
           cv::cvtColor(maskImageResized, maskImageBW, cv::COLOR_BGRA2GRAY);
@@ -368,7 +367,7 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
     });
   } else if (propName == "siftCompare") {
       return jsi::Function::createFromHostFunction(
-          runtime, jsi::PropNameID::forAscii(runtime, "siftCompare"), 5,
+          runtime, jsi::PropNameID::forAscii(runtime, "siftCompare"), 3,
           [=](jsi::Runtime& runtime, const jsi::Value& thisValue, const jsi::Value* arguments,
               size_t count) -> jsi::Value {
         try {
@@ -381,80 +380,18 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           auto origKeypointsId = FOCV_JsiObject::id_from_wrap(runtime, arguments[2]);
           auto origKeypoints = *FOCV_Storage::get<std::vector<cv::KeyPoint>>(origKeypointsId);
 
-          auto origImageId = FOCV_JsiObject::id_from_wrap(runtime, arguments[3]);
-          auto origImageRaw = *FOCV_Storage::get<cv::Mat>(origImageId);
-
-          auto maskImageId = FOCV_JsiObject::id_from_wrap(runtime, arguments[4]);
-          auto maskImageRaw = *FOCV_Storage::get<cv::Mat>(maskImageId);
-
-          cv::Mat maskImageResized;
-          cv::resize(maskImageRaw, maskImageResized, cv::Size(1024, 768));
-          cv::Mat maskImageBW;
-          cv::cvtColor(maskImageResized, maskImageBW, cv::COLOR_BGRA2GRAY);
-
-          cv::Mat maskImage;
-          const int lowerBound = 10;
-          const int upperBound = 255;
-          cv::inRange(maskImageBW, lowerBound, upperBound, maskImage);
-
-            __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "three");
           cv::Mat testImageBW;
-          cv::cvtColor(testImageRaw, testImageBW, cv::COLOR_BGRA2GRAY);
+          cv::cvtColor(testImageRaw, testImageBW, cv::COLOR_RGBA2GRAY);
 
-          cv::Mat testImage;
-          cv::resize(testImageBW, testImage, cv::Size(1024, 768));
-
-          // cv::Mat testImageMasked;
-          // cv::bitwise_or(testImage, testImage, testImageMasked, maskImage);
-
-          cv::Mat origImageResized;
-          cv::resize(origImageRaw, origImageResized, cv::Size(1024, 768));
-
-          cv::Mat origImage;
-          cv::cvtColor(origImageResized, origImage, cv::COLOR_BGRA2GRAY);
-
-          // cv::Mat origImageMasked;
-          // cv::bitwise_or(origImage, origImage, origImageMasked, maskImage);
-
-          cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
-
-          /*
-        std::vector<cv::KeyPoint> fakeOrigKeypoints;
-        cv::Mat fakeOrigDescriptors;
-        siftPtr->detectAndCompute(origImage, cv::noArray(), fakeOrigKeypoints, fakeOrigDescriptors);
-
-          if (fakeOrigDescriptors.rows == origDescriptors.rows) {
-            if (fakeOrigDescriptors.cols == origDescriptors.cols) {
-              auto size = fakeOrigDescriptors.total()*fakeOrigDescriptors.elemSize();
-              for(auto i=0;i<size;++i) {
-                if (fakeOrigDescriptors.data[i] != origDescriptors.data[i]) {
-                  __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "DIFFERENT AT: %i", i);
-                }
-              }
-            }
-            else {
-              __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "DIFFERENT COLS: %i,%i", fakeOrigDescriptors.cols,origDescriptors.cols);
-            }
-          } else {
-            __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "DIFFERENT ROWS: %i,%i", fakeOrigDescriptors.rows,origDescriptors.rows);
-          }
-          */
-
-        // std::string x;
-        //   for(auto i=0;i<fakeOrigDescriptors.rows;++i) {
-        //     x += fakeOrigDescriptors.data[i];
-        //   }
-        // __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "ROW: %d,%d,%d,%d,%d",
-        //                     fakeOrigDescriptors.data[0],
-        //                     fakeOrigDescriptors.data[1],
-        //                     fakeOrigDescriptors.data[2],
-        //                     fakeOrigDescriptors.data[3],
-        //                     fakeOrigDescriptors.data[4]
-        //                     );
+          cv::Mat testImage = testImageBW;
+          //cv::resize(testImageBW, testImage, cv::Size(1024, 768));
 
         std::vector<cv::KeyPoint> testKeypoints;
         cv::Mat testDescriptors;
+        cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
         siftPtr->detectAndCompute(testImage, cv::noArray(), testKeypoints, testDescriptors);
+
+          drawKeypoints(testImage, testKeypoints, testImage, cv::Scalar::all(-1));
 
         cv::Ptr<cv::flann::KDTreeIndexParams> indexParams(
           new cv::flann::KDTreeIndexParams(5));
@@ -463,28 +400,122 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         cv::Ptr<cv::DescriptorMatcher> matcher(
           new cv::FlannBasedMatcher(indexParams, searchParams));
         std::vector<std::vector<cv::DMatch>> knnMatches;
+
+        if (testDescriptors.empty()) {
+          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "Test descriptors empty");
+          cv::Mat output;
+          cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
+          auto id = FOCV_Storage::save(output);
+          return FOCV_JsiObject::wrap(runtime, "mat", id);
+        }
+
+        if(origDescriptors.type()!=CV_32F) {
+            origDescriptors.convertTo(origDescriptors, CV_32F);
+        }
+
+        if(testDescriptors.type()!=CV_32F) {
+            testDescriptors.convertTo(testDescriptors, CV_32F);
+        }
         matcher->knnMatch(origDescriptors, testDescriptors, knnMatches, 2, cv::noArray());
 
         //-- Filter matches using the Lowe's ratio test
         const float ratio_thresh = 0.7f;
         std::vector<cv::DMatch> goodMatches;
         for (size_t i = 0; i < knnMatches.size(); i++) {
-          //__android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "knn match size: %zu", knnMatches[i].size());
-            if (!knnMatches[i].empty()) {
-          if (knnMatches[i][0].distance < ratio_thresh * knnMatches[i][1].distance) {
-            goodMatches.push_back(knnMatches[i][0]);
-          }
+          if (!knnMatches[i].empty()) {
+            if (knnMatches[i][0].distance < ratio_thresh * knnMatches[i][1].distance) {
+              goodMatches.push_back(knnMatches[i][0]);
             }
+          }
         }
 
+        if (goodMatches.size() < 50) {
+          cv::Mat output;
+          cv::cvtColor(testImage, output, cv::COLOR_BGRA2RGBA);
+          auto id = FOCV_Storage::save(output);
+          return FOCV_JsiObject::wrap(runtime, "mat", id);
+        }
+
+        std::vector<Point2f> orig;
+        std::vector<Point2f> test;
+
+        for( size_t i = 0; i < goodMatches.size(); i++ )
+        {
+          //-- Get the keypoints from the good matches
+          orig.push_back(origKeypoints[goodMatches[i].queryIdx].pt);
+          test.push_back(testKeypoints[goodMatches[i].trainIdx].pt);
+        }
+        Mat H = cv::findHomography(orig, test, cv::RANSAC);
+
+        if (H.empty()) {
+          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "Empty homography");
+          cv::Mat output;
+          cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
+          auto id = FOCV_Storage::save(output);
+          return FOCV_JsiObject::wrap(runtime, "mat", id);
+        }
+
+        std::vector<Point2f> origCorners(4);
+        // origCorners[0] = Point2f(0, 0);
+        // origCorners[1] = Point2f((float)testImage.cols, 0 );
+        // origCorners[2] = Point2f((float)testImage.cols, (float)testImage.rows );
+        // origCorners[3] = Point2f(0, (float)testImage.rows );
+        origCorners[0] = Point2f(0, 0);
+        origCorners[1] = Point2f((float)testImage.rows, 0 );
+        origCorners[2] = Point2f((float)testImage.rows, (float)testImage.cols );
+        origCorners[3] = Point2f(0, (float)testImage.cols );
+        std::vector<Point2f> testCorners(4);
+
+        perspectiveTransform(origCorners, testCorners, H);
+
         cv::Mat output;
-        drawMatches(origImage, origKeypoints, testImage, testKeypoints, goodMatches,
+        cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
+          cv::line(output,
+                   testCorners[0],// + Point2f((float)testImage.cols, 0),
+                   testCorners[1] ,//+ Point2f((float)testImage.cols, 0),
+                   Scalar( 128,128,128), 4 );
+          cv::line(output,
+                   testCorners[1] ,//+ Point2f((float)testImage.cols, 0),
+                   testCorners[2] ,//+ Point2f((float)testImage.cols, 0),
+                   Scalar( 128,128,128), 4 );
+          cv::line(output,
+                   testCorners[2] ,//+ Point2f((float)testImage.cols, 0),
+                   testCorners[3] ,//+ Point2f((float)testImage.cols, 0),
+                   Scalar( 128,128,128), 4 );
+          cv::line(output,
+                   testCorners[3] ,//+ Point2f((float)testImage.cols, 0),
+                   testCorners[0] ,//+ Point2f((float)testImage.cols, 0),
+                   Scalar( 128,128,128), 4 );
+          float perc = std::round((static_cast<float>(goodMatches.size())/static_cast<float>(origKeypoints.size()))*100.0);
+          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "PERC %f", perc);
+          cv::String text = cv::format("Matches: %zu / %zu (%f)", goodMatches.size(), origKeypoints.size(), perc);
+          cv::putText(output,
+                     //std::format("Matches: {}", goodMatches.size()),
+                      text,
+                      cv::Point(10,400),
+cv::FONT_HERSHEY_DUPLEX,
+            1.0,
+            CV_RGB(118, 185, 0), //font color
+            2);
+          cv::String text1 = cv::format("KNN Matches: %zu", knnMatches.size());
+          cv::putText(output,
+                     //std::format("Matches: {}", goodMatches.size()),
+                      text1,
+                      cv::Point(10,500),
+cv::FONT_HERSHEY_DUPLEX,
+            1.0,
+            CV_RGB(118, 185, 0), //font color
+            2);
+
+          /*
+        cv::Mat output;
+        drawMatches(testImage, origKeypoints, testImage, testKeypoints, goodMatches,
         output, cv::Scalar::all(-1), cv::Scalar::all(-1));
+          */
 
-          cv::Mat result;
-
-        cv::cvtColor(output, result, cv::COLOR_BGRA2RGBA);
-          auto id = FOCV_Storage::save(result);
+          //cv::Mat result;
+          //cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
+          auto id = FOCV_Storage::save(output);
           return FOCV_JsiObject::wrap(runtime, "mat", id);
         } catch(const std::exception& ex) {
           __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "The error %s", ex.what());

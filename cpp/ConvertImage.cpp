@@ -157,7 +157,6 @@ Mat ImageConverter::str2mat(const string& s)
     vector<uchar> data(decoded_string.begin(), decoded_string.end());
 
     cv::Mat img = cv::imdecode(data, IMREAD_UNCHANGED);
-          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "FUNKC %i, %i", img.cols, img.rows);
 
     return img;
 }

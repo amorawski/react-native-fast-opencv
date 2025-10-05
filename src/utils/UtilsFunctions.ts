@@ -77,11 +77,5 @@ export type UtilsFunctions = {
 
   siftDrawKeypoints(orig: Mat, keypoints: KeyPointVector): Mat;
 
-  siftCompare(
-    test: Mat,
-    descriptors: Mat,
-    keypoints: KeyPointVector,
-    orig: Mat,
-    mask: Mat
-  ): Mat;
+  siftCompare(test: Mat, descriptors: Mat, keypoints: KeyPointVector): Mat;
 };
