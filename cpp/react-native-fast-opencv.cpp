@@ -1,5 +1,4 @@
 #include <iostream>
-#include <android/log.h>
 #include <cmath>
 
 #include "react-native-fast-opencv.h"
@@ -85,7 +84,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         runtime, jsi::PropNameID::forAscii(runtime, "bufferToMat"), 5,
         [=](jsi::Runtime& runtime, const jsi::Value& thisValue, const jsi::Value* arguments,
             size_t count) -> jsi::Object {
-        try {
 
         auto type = arguments[0].asString(runtime).utf8(runtime);
         auto rows = arguments[1].asNumber();
@@ -142,14 +140,9 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
 
         cv::Mat mat(rows, cols, modeType);
         memcpy(mat.data, vec.data(), (int)rows * (int)cols * (int)channels * typeSize);
-          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "%f, %f, %f, %d", rows,cols,channels,typeSize);
         auto id = FOCV_Storage::save(mat);
 
         return FOCV_JsiObject::wrap(runtime, "mat", id);
-        } catch(const std::exception& ex) {
-
-          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "The error %s", ex.what());
-        }
     });
   }
   else if (propName == "base64ToMat") {
@@ -290,7 +283,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           runtime, jsi::PropNameID::forAscii(runtime, "siftDetect"), 2,
           [=](jsi::Runtime& runtime, const jsi::Value& thisValue, const jsi::Value* arguments,
               size_t count) -> jsi::Value {
-        try {
           auto origImageId = FOCV_JsiObject::id_from_wrap(runtime, arguments[0]);
           auto origImageRaw = *FOCV_Storage::get<cv::Mat>(origImageId);
 
@@ -335,17 +327,12 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           result.setProperty(runtime, "descriptors", FOCV_JsiObject::wrap(runtime, "mat", descriptorsId));
 
           return result;
-        } catch(const std::exception& ex) {
-          __android_log_print(ANDROID_LOG_VERBOSE, "ImageComparison", "The error %s", ex.what());
-          throw ex;
-        }
     });
   } else if (propName == "siftDrawKeypoints") {
       return jsi::Function::createFromHostFunction(
           runtime, jsi::PropNameID::forAscii(runtime, "siftDrawKeypoints"), 2,
           [=](jsi::Runtime& runtime, const jsi::Value& thisValue, const jsi::Value* arguments,
               size_t count) -> jsi::Value {
-        try {
           auto origImageId = FOCV_JsiObject::id_from_wrap(runtime, arguments[0]);
           auto origImageRaw = *FOCV_Storage::get<cv::Mat>(origImageId);
 
@@ -360,17 +347,12 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
 
            auto id = FOCV_Storage::save(result);
            return FOCV_JsiObject::wrap(runtime, "mat", id);
-        } catch(const std::exception& ex) {
-          __android_log_print(ANDROID_LOG_VERBOSE, "ImageComparison", "The error %s", ex.what());
-          throw ex;
-        }
     });
   } else if (propName == "siftCompare") {
       return jsi::Function::createFromHostFunction(
           runtime, jsi::PropNameID::forAscii(runtime, "siftCompare"), 3,
           [=](jsi::Runtime& runtime, const jsi::Value& thisValue, const jsi::Value* arguments,
               size_t count) -> jsi::Value {
-        try {
           auto testImageId = FOCV_JsiObject::id_from_wrap(runtime, arguments[0]);
           auto testImageRaw = *FOCV_Storage::get<cv::Mat>(testImageId);
 
@@ -402,7 +384,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         std::vector<std::vector<cv::DMatch>> knnMatches;
 
         if (testDescriptors.empty()) {
-          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "Test descriptors empty");
           cv::Mat output;
           cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
           auto id = FOCV_Storage::save(output);
@@ -448,7 +429,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         Mat H = cv::findHomography(orig, test, cv::RANSAC);
 
         if (H.empty()) {
-          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "Empty homography");
           cv::Mat output;
           cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
           auto id = FOCV_Storage::save(output);
@@ -487,7 +467,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
                    testCorners[0] ,//+ Point2f((float)testImage.cols, 0),
                    Scalar( 128,128,128), 4 );
           float perc = std::round((static_cast<float>(goodMatches.size())/static_cast<float>(origKeypoints.size()))*100.0);
-          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "PERC %f", perc);
           cv::String text = cv::format("Matches: %zu / %zu (%f)", goodMatches.size(), origKeypoints.size(), perc);
           cv::putText(output,
                      //std::format("Matches: {}", goodMatches.size()),
@@ -517,10 +496,6 @@ cv::FONT_HERSHEY_DUPLEX,
           //cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
           auto id = FOCV_Storage::save(output);
           return FOCV_JsiObject::wrap(runtime, "mat", id);
-        } catch(const std::exception& ex) {
-          __android_log_print(ANDROID_LOG_VERBOSE, "TESTTEST", "The error %s", ex.what());
-          throw ex;
-        }
     });
   }
 

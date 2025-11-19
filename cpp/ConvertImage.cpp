@@ -14,7 +14,6 @@
 
 #include <vector>
 #include <string>
-#include <android/log.h>
 
 using namespace std;
 using namespace cv;
