@@ -289,16 +289,16 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           auto maskImageId = FOCV_JsiObject::id_from_wrap(runtime, arguments[1]);
           auto maskImageRaw = *FOCV_Storage::get<cv::Mat>(maskImageId);
 
-          cv::Mat origImageResized;// = origImageRaw;
-          cv::resize(origImageRaw, origImageResized, cv::Size(800, 600));
+          cv::Mat origImageResized = origImageRaw;
+          //cv::resize(origImageRaw, origImageResized, cv::Size(800, 600));
 
           cv::Mat origImageBW;
           cv::cvtColor(origImageResized, origImageBW, cv::COLOR_BGRA2GRAY);
 
           cv::Mat origImage = origImageBW;
 
-          cv::Mat maskImageResized;// = maskImageRaw;
-          cv::resize(maskImageRaw, maskImageResized, cv::Size(800, 600));
+          cv::Mat maskImageResized = maskImageRaw;
+          //cv::resize(maskImageRaw, maskImageResized, cv::Size(800, 600));
 
           cv::Mat maskImageBW;
           cv::cvtColor(maskImageResized, maskImageBW, cv::COLOR_BGRA2GRAY);
