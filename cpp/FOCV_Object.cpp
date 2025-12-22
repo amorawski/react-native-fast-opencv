@@ -284,6 +284,21 @@ jsi::Object FOCV_Object::convertToJSI(jsi::Runtime& runtime, const jsi::Value* a
 
             value.setProperty(runtime, "array", array);
         } break;
+        case hashString("point2f_vector", 14): {
+            auto points = *FOCV_Storage::get<std::vector<cv::Point2f>>(id);
+
+            auto array = jsi::Array(runtime, points.size());
+
+            for (size_t i = 0; i < points.size(); i++) {
+                jsi::Object item(runtime);
+
+                item.setProperty(runtime, "x", jsi::Value(points.at(i).x));
+                item.setProperty(runtime, "y", jsi::Value(points.at(i).y));
+                array.setValueAtIndex(runtime, i, item);
+            }
+
+            value.setProperty(runtime, "array", array);
+        } break;
         case hashString("point_vector_vector", 19): {
             auto points_vector = *FOCV_Storage::get<std::vector<std::vector<cv::Point>>>(id);
 

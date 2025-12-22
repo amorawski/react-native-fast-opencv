@@ -373,7 +373,7 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
         siftPtr->detectAndCompute(testImage, cv::noArray(), testKeypoints, testDescriptors);
 
-          drawKeypoints(testImage, testKeypoints, testImage, cv::Scalar::all(-1));
+          //drawKeypoints(testImage, testKeypoints, testImage, cv::Scalar::all(-1));
 
         cv::Ptr<cv::flann::KDTreeIndexParams> indexParams(
           new cv::flann::KDTreeIndexParams(5));
@@ -383,11 +383,12 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           new cv::FlannBasedMatcher(indexParams, searchParams));
         std::vector<std::vector<cv::DMatch>> knnMatches;
 
+
+        std::vector<Point2f> testCorners(4);
         if (testDescriptors.empty()) {
-          cv::Mat output;
-          cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
-          auto id = FOCV_Storage::save(output);
-          return FOCV_JsiObject::wrap(runtime, "mat", id);
+          testCorners[0] = Point2f(0, 0);
+          auto id = FOCV_Storage::save(testCorners);
+          return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
         }
 
         if(origDescriptors.type()!=CV_32F) {
@@ -410,11 +411,10 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           }
         }
 
-        if (goodMatches.size() < 50) {
-          cv::Mat output;
-          cv::cvtColor(testImage, output, cv::COLOR_BGRA2RGBA);
-          auto id = FOCV_Storage::save(output);
-          return FOCV_JsiObject::wrap(runtime, "mat", id);
+        if (goodMatches.size() < 4) {
+          testCorners[0] = Point2f(goodMatches.size(), 1);
+          auto id = FOCV_Storage::save(testCorners);
+          return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
         }
 
         std::vector<Point2f> orig;
@@ -429,73 +429,21 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         Mat H = cv::findHomography(orig, test, cv::RANSAC);
 
         if (H.empty()) {
-          cv::Mat output;
-          cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
-          auto id = FOCV_Storage::save(output);
-          return FOCV_JsiObject::wrap(runtime, "mat", id);
+          testCorners[0] = Point2f(2, 2);
+          auto id = FOCV_Storage::save(testCorners);
+          return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
         }
 
         std::vector<Point2f> origCorners(4);
-        // origCorners[0] = Point2f(0, 0);
-        // origCorners[1] = Point2f((float)testImage.cols, 0 );
-        // origCorners[2] = Point2f((float)testImage.cols, (float)testImage.rows );
-        // origCorners[3] = Point2f(0, (float)testImage.rows );
         origCorners[0] = Point2f(0, 0);
-        origCorners[1] = Point2f((float)testImage.rows, 0 );
-        origCorners[2] = Point2f((float)testImage.rows, (float)testImage.cols );
-        origCorners[3] = Point2f(0, (float)testImage.cols );
-        std::vector<Point2f> testCorners(4);
+        origCorners[1] = Point2f((float)testImage.cols, 0 );
+        origCorners[2] = Point2f((float)testImage.cols, (float)testImage.rows );
+        origCorners[3] = Point2f(0, (float)testImage.rows );
 
         perspectiveTransform(origCorners, testCorners, H);
 
-        cv::Mat output;
-        cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
-          cv::line(output,
-                   testCorners[0],// + Point2f((float)testImage.cols, 0),
-                   testCorners[1] ,//+ Point2f((float)testImage.cols, 0),
-                   Scalar( 128,128,128), 4 );
-          cv::line(output,
-                   testCorners[1] ,//+ Point2f((float)testImage.cols, 0),
-                   testCorners[2] ,//+ Point2f((float)testImage.cols, 0),
-                   Scalar( 128,128,128), 4 );
-          cv::line(output,
-                   testCorners[2] ,//+ Point2f((float)testImage.cols, 0),
-                   testCorners[3] ,//+ Point2f((float)testImage.cols, 0),
-                   Scalar( 128,128,128), 4 );
-          cv::line(output,
-                   testCorners[3] ,//+ Point2f((float)testImage.cols, 0),
-                   testCorners[0] ,//+ Point2f((float)testImage.cols, 0),
-                   Scalar( 128,128,128), 4 );
-          float perc = std::round((static_cast<float>(goodMatches.size())/static_cast<float>(origKeypoints.size()))*100.0);
-          cv::String text = cv::format("Matches: %zu / %zu (%f)", goodMatches.size(), origKeypoints.size(), perc);
-          cv::putText(output,
-                     //std::format("Matches: {}", goodMatches.size()),
-                      text,
-                      cv::Point(10,400),
-cv::FONT_HERSHEY_DUPLEX,
-            1.0,
-            CV_RGB(118, 185, 0), //font color
-            2);
-          cv::String text1 = cv::format("KNN Matches: %zu", knnMatches.size());
-          cv::putText(output,
-                     //std::format("Matches: {}", goodMatches.size()),
-                      text1,
-                      cv::Point(10,500),
-cv::FONT_HERSHEY_DUPLEX,
-            1.0,
-            CV_RGB(118, 185, 0), //font color
-            2);
-
-          /*
-        cv::Mat output;
-        drawMatches(testImage, origKeypoints, testImage, testKeypoints, goodMatches,
-        output, cv::Scalar::all(-1), cv::Scalar::all(-1));
-          */
-
-          //cv::Mat result;
-          //cv::cvtColor(testImageRaw, output, cv::COLOR_BGRA2RGBA);
-          auto id = FOCV_Storage::save(output);
-          return FOCV_JsiObject::wrap(runtime, "mat", id);
+        auto id = FOCV_Storage::save(testCorners);
+        return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
     });
   }
 

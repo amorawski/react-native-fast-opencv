@@ -110,6 +110,10 @@ export type Objects = {
       y: number;
     }[];
   };
+  toJSValue(point2f: Point2fVector): {
+    x: number;
+    y: number;
+  };
   toJSValue(pointVector: PointVectorOfVectors): {
     array: {
       x: number;

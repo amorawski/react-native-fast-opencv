@@ -1,4 +1,4 @@
-import type { KeyPointVector, Mat } from '../objects/Objects';
+import type { KeyPointVector, Mat, Point2fVector } from '../objects/Objects';
 
 type BufferType = {
   uint8: Uint8Array;
@@ -77,5 +77,9 @@ export type UtilsFunctions = {
 
   siftDrawKeypoints(orig: Mat, keypoints: KeyPointVector): Mat;
 
-  siftCompare(test: Mat, descriptors: Mat, keypoints: KeyPointVector): Mat;
+  siftCompare(
+    test: Mat,
+    descriptors: Mat,
+    keypoints: KeyPointVector
+  ): Point2fVector;
 };
