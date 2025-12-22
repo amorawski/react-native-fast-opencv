@@ -373,8 +373,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
         siftPtr->detectAndCompute(testImage, cv::noArray(), testKeypoints, testDescriptors);
 
-          //drawKeypoints(testImage, testKeypoints, testImage, cv::Scalar::all(-1));
-
         cv::Ptr<cv::flann::KDTreeIndexParams> indexParams(
           new cv::flann::KDTreeIndexParams(5));
         cv::Ptr<cv::flann::SearchParams> searchParams(
@@ -386,7 +384,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
 
         std::vector<Point2f> testCorners(4);
         if (testDescriptors.empty()) {
-          testCorners[0] = Point2f(0, 0);
           auto id = FOCV_Storage::save(testCorners);
           return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
         }
@@ -398,7 +395,13 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         if(testDescriptors.type()!=CV_32F) {
             testDescriptors.convertTo(testDescriptors, CV_32F);
         }
-        matcher->knnMatch(origDescriptors, testDescriptors, knnMatches, 2, cv::noArray());
+
+        try {
+          matcher->knnMatch(origDescriptors, testDescriptors, knnMatches, 2, cv::noArray());
+        } catch(...) {
+          auto id = FOCV_Storage::save(testCorners);
+          return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
+        }
 
         //-- Filter matches using the Lowe's ratio test
         const float ratio_thresh = 0.7f;
@@ -412,7 +415,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         }
 
         if (goodMatches.size() < 4) {
-          testCorners[0] = Point2f(goodMatches.size(), 1);
           auto id = FOCV_Storage::save(testCorners);
           return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
         }
@@ -429,7 +431,6 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
         Mat H = cv::findHomography(orig, test, cv::RANSAC);
 
         if (H.empty()) {
-          testCorners[0] = Point2f(2, 2);
           auto id = FOCV_Storage::save(testCorners);
           return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
         }
