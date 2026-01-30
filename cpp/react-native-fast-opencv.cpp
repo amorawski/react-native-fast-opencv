@@ -11,11 +11,23 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/features2d.hpp>
 #include "FOCV_Object.hpp"
 #include "ConvertImage.hpp"
 #include "FOCV_JsiObject.hpp"
 #include "jsi/jsi.h"
 #include "opencv2/opencv.hpp"
+
+#include <string>
+
+#ifdef __ANDROID__
+    #include <android/log.h>
+    #define LOG_TAG "ReactNativeJS"
+    #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#else
+    #include <iostream>
+    #define LOGD(...) printf(__VA_ARGS__); printf("\n")
+#endif
 
 using namespace mrousavy;
 
@@ -172,6 +184,7 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
 
                 value.setProperty(runtime, "cols", jsi::Value(mat.cols));
                 value.setProperty(runtime, "rows", jsi::Value(mat.rows));
+                value.setProperty(runtime, "step", jsi::Value((double)mat.step1()));
                 value.setProperty(runtime, "channels", jsi::Value(mat.channels()));
 
                 auto type = arguments[1].asString(runtime).utf8(runtime);
@@ -289,34 +302,16 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           auto maskImageId = FOCV_JsiObject::id_from_wrap(runtime, arguments[1]);
           auto maskImageRaw = *FOCV_Storage::get<cv::Mat>(maskImageId);
 
-          cv::Mat origImageResized = origImageRaw;
-          //cv::resize(origImageRaw, origImageResized, cv::Size(800, 600));
-
-          cv::Mat origImageBW;
-          cv::cvtColor(origImageResized, origImageBW, cv::COLOR_BGRA2GRAY);
-
-          cv::Mat origImage = origImageBW;
-
-          cv::Mat maskImageResized = maskImageRaw;
-          //cv::resize(maskImageRaw, maskImageResized, cv::Size(800, 600));
-
-          cv::Mat maskImageBW;
-          cv::cvtColor(maskImageResized, maskImageBW, cv::COLOR_BGRA2GRAY);
-
-          cv::Mat maskImage;
-          const int lowerBound = 10;
-          const int upperBound = 255;
-          cv::inRange(maskImageBW, lowerBound, upperBound, maskImage);
-
-          cv::Mat origImageMasked;
-          cv::bitwise_or(origImage, origImage, origImageMasked, maskImage);
-
           cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
 
           std::vector<cv::KeyPoint> origKeypoints;
           cv::Mat origDescriptors;
 
-          siftPtr->detectAndCompute(origImage, origImageMasked, origKeypoints, origDescriptors);
+          siftPtr->detectAndCompute(origImageRaw, maskImageRaw, origKeypoints, origDescriptors);
+
+          if(origDescriptors.type()!=CV_32F) {
+              origDescriptors.convertTo(origDescriptors, CV_32F);
+          }
 
           jsi::Object result(runtime);
 
@@ -340,13 +335,10 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           auto origKeypoints = *FOCV_Storage::get<std::vector<cv::KeyPoint>>(origKeypointsId);
 
           cv::Mat output;
-          drawKeypoints(origImageRaw, origKeypoints, output, cv::Scalar::all(-1));
+          drawKeypoints(origImageRaw, origKeypoints, output, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
-           cv::Mat result;
-           cv::cvtColor(output, result, cv::COLOR_BGRA2RGBA);
-
-           auto id = FOCV_Storage::save(result);
-           return FOCV_JsiObject::wrap(runtime, "mat", id);
+          auto id = FOCV_Storage::save(output);
+          return FOCV_JsiObject::wrap(runtime, "mat", id);
     });
   } else if (propName == "siftCompare") {
       return jsi::Function::createFromHostFunction(
@@ -362,89 +354,75 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           auto origKeypointsId = FOCV_JsiObject::id_from_wrap(runtime, arguments[2]);
           auto origKeypoints = *FOCV_Storage::get<std::vector<cv::KeyPoint>>(origKeypointsId);
 
-          cv::Mat testImageBW;
-          cv::cvtColor(testImageRaw, testImageBW, cv::COLOR_RGBA2GRAY);
+          std::vector<cv::KeyPoint> testKeypoints;
+          cv::Mat testDescriptors;
+          cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
+          siftPtr->detectAndCompute(testImageRaw, cv::noArray(), testKeypoints, testDescriptors);
 
-          cv::Mat testImage = testImageBW;
-          //cv::resize(testImageBW, testImage, cv::Size(1024, 768));
-
-        std::vector<cv::KeyPoint> testKeypoints;
-        cv::Mat testDescriptors;
-        cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
-        siftPtr->detectAndCompute(testImage, cv::noArray(), testKeypoints, testDescriptors);
-
-        cv::Ptr<cv::flann::KDTreeIndexParams> indexParams(
-          new cv::flann::KDTreeIndexParams(5));
-        cv::Ptr<cv::flann::SearchParams> searchParams(
-          new cv::flann::SearchParams(50));
-        cv::Ptr<cv::DescriptorMatcher> matcher(
-          new cv::FlannBasedMatcher(indexParams, searchParams));
-        std::vector<std::vector<cv::DMatch>> knnMatches;
+          cv::Ptr<cv::flann::KDTreeIndexParams> indexParams(
+            new cv::flann::KDTreeIndexParams(5));
+          cv::Ptr<cv::flann::SearchParams> searchParams(
+            new cv::flann::SearchParams(50));
+          cv::Ptr<cv::DescriptorMatcher> matcher(
+            new cv::FlannBasedMatcher(indexParams, searchParams));
+          std::vector<std::vector<cv::DMatch>> knnMatches;
 
 
-        std::vector<Point2f> testCorners(4);
-        if (testDescriptors.empty()) {
-          auto id = FOCV_Storage::save(testCorners);
-          return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
-        }
+          std::vector<Point2f> testCorners;
+          if (testDescriptors.empty()) {
+            auto id = FOCV_Storage::save(testCorners);
+            return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
+          }
 
-        if(origDescriptors.type()!=CV_32F) {
-            origDescriptors.convertTo(origDescriptors, CV_32F);
-        }
+          try {
+            matcher->knnMatch(origDescriptors, testDescriptors, knnMatches, 2, cv::noArray());
+          } catch(...) {
+            auto id = FOCV_Storage::save(testCorners);
+            return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
+          }
 
-        if(testDescriptors.type()!=CV_32F) {
-            testDescriptors.convertTo(testDescriptors, CV_32F);
-        }
-
-        try {
-          matcher->knnMatch(origDescriptors, testDescriptors, knnMatches, 2, cv::noArray());
-        } catch(...) {
-          auto id = FOCV_Storage::save(testCorners);
-          return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
-        }
-
-        //-- Filter matches using the Lowe's ratio test
-        const float ratio_thresh = 0.7f;
-        std::vector<cv::DMatch> goodMatches;
-        for (size_t i = 0; i < knnMatches.size(); i++) {
-          if (!knnMatches[i].empty()) {
-            if (knnMatches[i][0].distance < ratio_thresh * knnMatches[i][1].distance) {
-              goodMatches.push_back(knnMatches[i][0]);
+          //-- Filter matches using the Lowe's ratio test
+          const float ratio_thresh = 0.7f;
+          std::vector<cv::DMatch> goodMatches;
+          for (size_t i = 0; i < knnMatches.size(); i++) {
+            if (!knnMatches[i].empty()) {
+              if (knnMatches[i][0].distance < ratio_thresh * knnMatches[i][1].distance) {
+                goodMatches.push_back(knnMatches[i][0]);
+              }
             }
           }
-        }
 
-        if (goodMatches.size() < 4) {
+          if (goodMatches.size() < 4) {
+            auto id = FOCV_Storage::save(testCorners);
+            return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
+          }
+
+          std::vector<Point2f> orig;
+          std::vector<Point2f> test;
+
+          for( size_t i = 0; i < goodMatches.size(); i++ )
+          {
+            //-- Get the keypoints from the good matches
+            orig.push_back(origKeypoints[goodMatches[i].queryIdx].pt);
+            test.push_back(testKeypoints[goodMatches[i].trainIdx].pt);
+          }
+          Mat H = cv::findHomography(orig, test, cv::RANSAC);
+
+          if (H.empty()) {
+            auto id = FOCV_Storage::save(testCorners);
+            return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
+          }
+
+          std::vector<Point2f> origCorners(4);
+          origCorners[0] = Point2f(0, 0);
+          origCorners[1] = Point2f((float)testImageRaw.cols, 0 );
+          origCorners[2] = Point2f((float)testImageRaw.cols, (float)testImageRaw.rows );
+          origCorners[3] = Point2f(0, (float)testImageRaw.rows );
+
+          perspectiveTransform(origCorners, testCorners, H);
+
           auto id = FOCV_Storage::save(testCorners);
           return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
-        }
-
-        std::vector<Point2f> orig;
-        std::vector<Point2f> test;
-
-        for( size_t i = 0; i < goodMatches.size(); i++ )
-        {
-          //-- Get the keypoints from the good matches
-          orig.push_back(origKeypoints[goodMatches[i].queryIdx].pt);
-          test.push_back(testKeypoints[goodMatches[i].trainIdx].pt);
-        }
-        Mat H = cv::findHomography(orig, test, cv::RANSAC);
-
-        if (H.empty()) {
-          auto id = FOCV_Storage::save(testCorners);
-          return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
-        }
-
-        std::vector<Point2f> origCorners(4);
-        origCorners[0] = Point2f(0, 0);
-        origCorners[1] = Point2f((float)testImage.cols, 0 );
-        origCorners[2] = Point2f((float)testImage.cols, (float)testImage.rows );
-        origCorners[3] = Point2f(0, (float)testImage.rows );
-
-        perspectiveTransform(origCorners, testCorners, H);
-
-        auto id = FOCV_Storage::save(testCorners);
-        return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
     });
   }
 

@@ -64,6 +64,7 @@ export type UtilsFunctions = {
   ): {
     cols: number;
     rows: number;
+    step: number;
     channels: number;
     buffer: BufferType[T];
   };

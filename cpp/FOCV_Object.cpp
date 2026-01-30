@@ -208,13 +208,14 @@ jsi::Object FOCV_Object::convertToJSI(jsi::Runtime& runtime, const jsi::Value* a
               format = arguments[1].asString(runtime).utf8(runtime);
             }
 
-            mat.convertTo(mat, CV_8U);
-
             value.setProperty(runtime, "base64", jsi::String::createFromUtf8(runtime, ImageConverter::mat2str(mat, format)));
             value.setProperty(runtime, "size", jsi::Value(mat.size));
             value.setProperty(runtime, "cols", jsi::Value(mat.cols));
             value.setProperty(runtime, "rows", jsi::Value(mat.rows));
             value.setProperty(runtime, "type", jsi::Value(mat.type()));
+            value.setProperty(runtime, "step", jsi::Value((double)mat.step1()));
+            value.setProperty(runtime, "depth", jsi::Value(mat.depth()));
+            value.setProperty(runtime, "channels", jsi::Value(mat.channels()));
         } break;
         case hashString("mat_vector", 10): {
             auto mats = *FOCV_Storage::get<std::vector<cv::Mat>>(id);

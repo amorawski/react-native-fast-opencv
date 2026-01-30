@@ -92,6 +92,9 @@ export type Objects = {
     rows: number;
     base64: string;
     type: DataTypes;
+    step: number;
+    depth: DataTypes;
+    channels: 1 | 3 | 4;
   };
   toJSValue(matVector: MatVector): {
     array: { size: number; cols: number; rows: number }[];
