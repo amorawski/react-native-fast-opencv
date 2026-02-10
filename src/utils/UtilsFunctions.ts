@@ -83,4 +83,6 @@ export type UtilsFunctions = {
     descriptors: Mat,
     keypoints: KeyPointVector
   ): Point2fVector;
+
+  ensure8U(input: Mat): Mat;
 };

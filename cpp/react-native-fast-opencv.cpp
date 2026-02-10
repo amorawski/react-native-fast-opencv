@@ -340,6 +340,25 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
           auto id = FOCV_Storage::save(output);
           return FOCV_JsiObject::wrap(runtime, "mat", id);
     });
+  } else if (propName == "ensure8U") {
+      return jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forAscii(runtime, "ensure8U"), 1,
+        [=](jsi::Runtime& runtime, const jsi::Value& thisValue, const jsi::Value* arguments,
+        size_t count) -> jsi::Value {
+
+        auto imgId = FOCV_JsiObject::id_from_wrap(runtime, arguments[0]);
+        cv::Mat input = *FOCV_Storage::get<cv::Mat>(imgId);
+
+        if (input.depth() == CV_8U) {
+            return FOCV_JsiObject::wrap(runtime, "mat", imgId);
+        }
+
+        cv::Mat output;
+        cv::normalize(input, output, 0, 255, cv::NORM_MINMAX, CV_8U);
+
+        auto id = FOCV_Storage::save(output);
+        return FOCV_JsiObject::wrap(runtime, "mat", id);
+    });
   } else if (propName == "siftCompare") {
       return jsi::Function::createFromHostFunction(
           runtime, jsi::PropNameID::forAscii(runtime, "siftCompare"), 3,
@@ -443,6 +462,7 @@ std::vector<jsi::PropNameID> OpenCVPlugin::getPropertyNames(jsi::Runtime& runtim
     result.push_back(jsi::PropNameID::forAscii(runtime, "siftDetect"));
     result.push_back(jsi::PropNameID::forAscii(runtime, "siftDrawKeypoints"));
     result.push_back(jsi::PropNameID::forAscii(runtime, "siftCompare"));
+    result.push_back(jsi::PropNameID::forAscii(runtime, "ensure8U"));
 
     return result;
 }
