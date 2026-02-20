@@ -41,7 +41,7 @@ export function ImageExample() {
         point,
         BorderTypes.BORDER_DEFAULT
       );
-      const dstResult = OpenCV.toJSValue(dst);
+      const dstResult = OpenCV.toJSValue(dst, 'jpeg');
 
       setImage(dstResult.base64);
 

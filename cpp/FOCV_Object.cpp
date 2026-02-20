@@ -205,7 +205,7 @@ jsi::Object FOCV_Object::convertToJSI(jsi::Runtime& runtime, const jsi::Value* a
             jsi::Value base64Value = jsi::Value::null();
 
             // TODO: not deliberate enough, but sufficient for now
-            if(arguments.size() > 1 && arguments[1].isString()) {
+            if(count > 1 && arguments[1].isString()) {
               std::string format = arguments[1].asString(runtime).utf8(runtime);
               base64Value = jsi::String::createFromUtf8(runtime, ImageConverter::mat2str(mat, format));
             }

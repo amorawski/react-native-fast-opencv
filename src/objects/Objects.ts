@@ -85,7 +85,20 @@ export type Objects = {
 
   toJSValue(
     mat: Mat,
-    outImageFormat?: 'jpeg' | 'png'
+    outImageFormat?: undefined
+  ): {
+    size: number;
+    cols: number;
+    rows: number;
+    base64: null;
+    type: DataTypes;
+    step: number;
+    depth: DataTypes;
+    channels: 1 | 3 | 4;
+  };
+  toJSValue(
+    mat: Mat,
+    outImageFormat: 'jpeg' | 'png'
   ): {
     size: number;
     cols: number;
