@@ -202,13 +202,15 @@ jsi::Object FOCV_Object::convertToJSI(jsi::Runtime& runtime, const jsi::Value* a
     switch(hashString(objectType.c_str(), objectType.size())) {
         case hashString("mat", 3): {
             auto mat = *FOCV_Storage::get<cv::Mat>(id);
-            std::string format = "jpeg";
+            jsi::Value base64Value = jsi::Value::null();
 
-            if(arguments[1].isString()) {
-              format = arguments[1].asString(runtime).utf8(runtime);
+            // TODO: not deliberate enough, but sufficient for now
+            if(arguments.size() > 1 && arguments[1].isString()) {
+              std::string format = arguments[1].asString(runtime).utf8(runtime);
+              base64Value = jsi::String::createFromUtf8(runtime, ImageConverter::mat2str(mat, format));
             }
 
-            value.setProperty(runtime, "base64", jsi::String::createFromUtf8(runtime, ImageConverter::mat2str(mat, format)));
+            value.setProperty(runtime, "base64", base64Value);
             value.setProperty(runtime, "size", jsi::Value(mat.size));
             value.setProperty(runtime, "cols", jsi::Value(mat.cols));
             value.setProperty(runtime, "rows", jsi::Value(mat.rows));
