@@ -361,7 +361,7 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
     });
   } else if (propName == "siftCompare") {
       return jsi::Function::createFromHostFunction(
-          runtime, jsi::PropNameID::forAscii(runtime, "siftCompare"), 3,
+          runtime, jsi::PropNameID::forAscii(runtime, "siftCompare"), 4,
           [=](jsi::Runtime& runtime, const jsi::Value& thisValue, const jsi::Value* arguments,
               size_t count) -> jsi::Value {
           auto testImageId = FOCV_JsiObject::id_from_wrap(runtime, arguments[0]);
@@ -372,6 +372,8 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
 
           auto origKeypointsId = FOCV_JsiObject::id_from_wrap(runtime, arguments[2]);
           auto origKeypoints = *FOCV_Storage::get<std::vector<cv::KeyPoint>>(origKeypointsId);
+
+          auto minGoodMatches = arguments[3].asNumber();
 
           std::vector<cv::KeyPoint> testKeypoints;
           cv::Mat testDescriptors;
@@ -411,7 +413,7 @@ jsi::Value OpenCVPlugin::get(jsi::Runtime& runtime, const jsi::PropNameID& propN
             }
           }
 
-          if (goodMatches.size() < 4) {
+          if (goodMatches.size() < minGoodMatches) {
             auto id = FOCV_Storage::save(testCorners);
             return FOCV_JsiObject::wrap(runtime, "point2f_vector", id);
           }

@@ -81,7 +81,8 @@ export type UtilsFunctions = {
   siftCompare(
     test: Mat,
     descriptors: Mat,
-    keypoints: KeyPointVector
+    keypoints: KeyPointVector,
+    minGoodMatches: number
   ): Point2fVector;
 
   ensure8U(input: Mat): Mat;
